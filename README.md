@@ -4,13 +4,14 @@ Petit boîtier USB autour d’un **RP2040 Zero (Waveshare)** sous **CircuitPytho
 
 Les sketchs **`code.py`** (boucle principale) et **`boot.py`** (USB + descripteur HID) vont à la racine du volume **CIRCUITPY**. Sans **`boot.py`** adapté, le MIDI peut marcher, mais le **gamepad HID** risque d’être absent ou incorrect.
 
+![herve-01.jpg]()
 ---
 
 ## Ce que le firmware fait (fonctionnalités)
 
 - **Deux modes USB** : **MIDI** (CC sur les mouvements de potars) ou **HID gamepad** (même potars pilotent des axes X/Y et, avec 4 potars, Z/Rz pour un second stick).
 - **Bascule MIDI / HID** sur **GP5** : interrupteur **2 broches** vers **GND** uniquement ; le code active un **pull-up** interne — **contact fermé** = MIDI, **ouvert** = HID (pas de fil **3V3** sur l’interrupteur).
-- **Numéros de CC MIDI** générés à partir de **`addr`** (défaut 31) : avec 2 pots, **32** puis **31**, puis **33, 34…** si tu ajoutes des voies (`_midi_cc_list`).
+- **Numéros de CC MIDI** générés à partir de **`5°`** (défaut 31) : avec 2 pots, **32** puis **31**, puis **33, 34…** si tu ajoutes des voies (`_midi_cc_list`).
 - **Lissage** sur plusieurs lectures par pot avant envoi, pour limiter le bruit et le spam MIDI.
 - **MIDI entrant** : un **`NoteOff` canal courant, note 64** demande au boîtier de **renvoyer l’état actuel** de tous les pots en CC (pratique pour resynchroniser une appli).
 - **LED NeoPixel** : flash court à chaque changement de valeur traité (couleur selon le pot).
