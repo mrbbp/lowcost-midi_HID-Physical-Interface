@@ -60,12 +60,52 @@ Ne pas court-circuiter **GND** et **3V3**.
 
 ## English
 
-Same device: **USB box** with **2–4 pots**, **MIDI** or **HID gamepad** selected by a **2-pin switch** on **GP5** (firmware **pull-up** — **closed to GND** = MIDI, **open** = HID). **Waveshare RP2040 Zero**, **CircuitPython 10.x**. **`code.py`** + **`boot.py`** at **CIRCUITPY** root.
+### Hervé BI or Quad
 
-**Features:** CC output with smoothing, **NoteOff note 64** requests full pot state over MIDI, **NeoPixel** blink on change, optional **4-pot** mapping to **dual analog sticks** in HID. **GP4** + **GND** boot input in **`boot.py`**.
+Small **USB enclosure** built around a **Waveshare RP2040 Zero** running **CircuitPython 10.x**: it reads **2 to 4× 10 kΩ potentiometers** and exposes them to the host either as **MIDI** (control messages) or as an **HID gamepad** (joystick axes). A **switch** on the board picks the mode **without reflashing** the firmware: on one side you have a classic MIDI controller, on the other a pad the OS sees as a standard gamepad.
 
-**Web:** **Web MIDI API** in MIDI mode; **Gamepad API** in HID mode (`getGamepads`), no extra browser driver.
+Place **`code.py`** (main loop) and **`boot.py`** (USB + HID descriptor) at the root of the **CIRCUITPY** drive. Without a matching **`boot.py`**, MIDI may work, but the **HID gamepad** may be missing or wrong.
 
-**Wiring:** **GP4–GND** boot; **GP5–GND** switch only; pots in **`POT_GPIO`** on **GP26–GP29**. **Trotec:** red = cut, green = 30 % cut, black = engrave.
+### What the firmware does (features)
 
-**Code map:** **`POT_GPIO`**, **`addr`** / **`_midi_cc_list`**, **`USB_MIDI_channel`**, **`use_midi`** / **GP5**, **`boot.py`** for HID descriptor. If HID missing: **`boot.py`** at root, reboot.
+- **Two USB modes**: **MIDI** (CC when pots move) or **HID gamepad** (same pots drive X/Y axes, and with **four** pots also Z/Rz for a second stick).
+- **MIDI / HID toggle** on **GP5**: **2-pin** switch to **GND** only; firmware enables an internal **pull-up** — **closed** = MIDI, **open** = HID (no **3V3** wire on the switch).
+- **MIDI CC numbers** derived from **`addr`** (default 31): with two pots, **32** then **31**, then **33, 34…** if you add channels (`_midi_cc_list`).
+- **Smoothing** over several samples per pot before sending, to cut noise and MIDI spam.
+- **MIDI input**: a **`NoteOff` on the current channel, note 64** asks the device to **send the current state** of every pot as CCs (handy to resync an app).
+- **NeoPixel LED**: short flash on each processed value change (colour depends on which pot changed).
+- **Boot button / line** on **GP4**: read in **`boot.py`** at startup (USB options commented in that file).
+
+### In the browser (web page)
+
+The device is meant to be **easy to use from a web page**, depending on switch position:
+
+- **MIDI mode**: use the **[Web MIDI API](https://developer.mozilla.org/en-US/docs/Web/API/Web_MIDI_API)** (`navigator.requestMIDIAccess`). You receive **Control Change** messages on the controller numbers described above; you can send **`NoteOff` note 64** to force a refresh of all values.
+- **HID gamepad mode**: use the **[Gamepad API](https://developer.mozilla.org/en-US/docs/Web/API/Gamepad_API)** (`navigator.getGamepads()` and `gamepadconnected` events). Axes show up like a standard controller; no extra browser-side driver.
+
+Browsers may require **HTTPS** or **`localhost`** for Web MIDI; the Gamepad API usually works as soon as the OS lists the device as a gamepad.
+
+### Wiring (summary)
+
+| Item | Connection |
+|------|------------|
+| **Boot** | **GP4** + **GND** |
+| **MIDI / HID switch** | **GP5** + **GND** (2 pins, firmware **pull-up**) |
+| **Pots** | One entry in the **`POT_GPIO`** tuple = one pot; ADC pins **GP26–GP29** per your layout |
+
+Do not short **GND** and **3V3**.
+
+**Trotec laser cut (enclosure PDF):** red = cut, green = light cut 30 %, black = engraving.
+
+### Where to look in the code
+
+| File / symbol | Purpose |
+|---------------|---------|
+| **`POT_GPIO`** | List of ADC pins = pot 0, 1, … ; **four** lines → right-stick HID active. |
+| **`addr`**, **`_midi_cc_list`** | Base and list of CC numbers. |
+| **`USB_MIDI_channel`** | MIDI output channel (1–16). |
+| **`mode_switch`**, **`use_midi`** | **GP5**, **`Pull.UP`**, logic `not mode_switch.value`. |
+| **`_hid_axes_from_omesure`**, **`_gamepad_move_joysticks`** | Pot readings → gamepad axes. |
+| **`boot.py`** | HID gamepad descriptor (report ID 4), **GP4** at boot. |
+
+**If the gamepad does not show up:** ensure **`boot.py`** is at the drive root, use a CircuitPython build compatible with the board, reboot after copying files.
