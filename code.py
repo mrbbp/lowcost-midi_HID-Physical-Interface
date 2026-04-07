@@ -1,8 +1,8 @@
 #
 #   MIDI : CC dérivés de addr et du nombre de pots (voir _midi_cc_list) — pot0→32, pot1→31, puis 33…
 #
-#   GPIO : INPUT + Pull.UP sur ce boîtier (GP4 dans boot.py, GP5 ici).
-#   GP5 : LOW → MIDI ; HIGH → HID (Gamepad). use_midi = not mode_switch.value
+#   GPIO : GP4 = Pull.DOWN (boot.py). GP5 = Pull.UP ici — int. 2 broches GP5↔GND seul : ouvert=HIGH(HID), fermé=LOW(MIDI).
+#   GP5 : LOW → MIDI ; HIGH → HID. use_midi = not mode_switch.value
 #   HID : 2 pots dans POT_GPIO = stick gauche (X,Y) ; 4+ pots = gauche (0,1) + droite Z,Rz (2,3).
 #   Gamepad HID : rapport 6 octets + Report ID 4 dans boot.py (voir boot.py).
 #
@@ -40,10 +40,10 @@ print("--------------------------")
 # MIDI : base addr — CC par pot : pot0→addr+1, pot1→addr, puis addr+2, addr+3, …
 addr = 31
 
-# GP5 : interrupteur MIDI/HID, Pull.UP (identique au choix matériel de boot.py pour GP4).
+# GP5 : interrupteur MIDI/HID 2 broches (GP5–GND) ; Pull.UP — pas de fil 3V3 nécessaire.
 mode_switch = digitalio.DigitalInOut(board.GP5)
 mode_switch.direction = digitalio.Direction.INPUT
-mode_switch.pull = digitalio.Pull.DOWN
+mode_switch.pull = digitalio.Pull.UP
 
 # HID gamepad : même rapport 6 octets que boot.py.
 # Si boot.py n’a pas tourné : 3 HID (usage 6 / 2 / 1), pas de gamepad (usage 5).
@@ -106,11 +106,11 @@ def _hid_axes_from_omesure(o, n_pot, use_right_stick):
     return jx, jy, jz, jr_z
 
 
-# message de contrôle : LOW = MIDI, HIGH = HID
+# message de contrôle : LOW = MIDI (int. fermé GP5-GND), HIGH = HID (ouvert, pull-up)
 if mode_switch.value:
-    print("GP5 initial: HIGH (vers +) -> mode HID")
+    print("GP5 initial: HIGH (ouvert) -> mode HID")
 else:
-    print("GP5 initial: LOW (repos) -> mode MIDI")
+    print("GP5 initial: LOW (fermé GND) -> mode MIDI")
 
 # --- Potentiomètres (ADC) : une ligne = un pot logique pot[0], pot[1], … ---
 # RP2040 : 4 canaux ADC (ADC0–ADC3) sur GP26–GP29 (souvent A0–A3 en CircuitPython).
@@ -167,9 +167,9 @@ while True:
     if use_midi != _sw_prev:
         _sw_prev = use_midi
         if use_midi:
-            print("*** SWITCH GP5 -> MIDI (LOW / repos)")
+            print("*** SWITCH GP5 -> MIDI (fermé GND)")
         else:
-            print("*** SWITCH GP5 -> HID (HIGH / vers +)")
+            print("*** SWITCH GP5 -> HID (ouvert)")
 
     msg = midi.receive() if use_midi else None
 
