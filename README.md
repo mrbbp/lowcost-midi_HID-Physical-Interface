@@ -4,8 +4,8 @@ Petit boîtier USB autour d’un **RP2040 Zero (Waveshare)** sous **CircuitPytho
 
 Les sketchs **`code.py`** (boucle principale) et **`boot.py`** (USB + descripteur HID) vont à la racine du volume **CIRCUITPY**. Sans **`boot.py`** adapté, le MIDI peut marcher, mais le **gamepad HID** risque d’être absent ou incorrect.
 
-![face](./herve-01.jpg)
-![face](./herve-02.jpg)
+![face](./medias/herve-01.jpg)
+![face](./medias/herve-02.jpg)
 ---
 
 ## Ce que le firmware fait (fonctionnalités)
